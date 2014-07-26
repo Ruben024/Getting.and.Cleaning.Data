@@ -18,13 +18,13 @@ names(features.df) <- c("id","name")
 activities.df <- read.table("UCI HAR Dataset/activity_labels.txt", header=FALSE)
 names(activities.df)<-c("id","name")
 
-#one subject data frame from the two data sets and columns
+#one subject data frame from the two data sets + name columns
 subject_test<-read.table("UCI HAR Dataset/test/subject_test.txt", header=FALSE)
 subject_train<-read.table("UCI HAR Dataset/train/subject_train.txt", header=FALSE)
 subject<-rbind(subject_test,subject_train)
 names(subject)<-c("subject")
 
-#one y (activities) data frame from the two data sets and columns
+#one y (activities) data frame from the two data sets + name columns
 y_test<-read.table("UCI HAR Dataset/test/y_test.txt", header=FALSE)
 y_train<-read.table("UCI HAR Dataset/train/y_train.txt", header=FALSE)
 y<-rbind(y_test,y_train)
@@ -32,7 +32,7 @@ y<-rbind(y_test,y_train)
 names(y)<-c("activity")
 y$activity<-activities.df[y$activity,]$name
 
-##one X (measurements) data frame from the two data sets and columns
+##one X (measurements) data frame from the two data sets + name columns
 X_test<-read.table("UCI HAR Dataset/test/X_test.txt", header=FALSE)
 X_train<-read.table("UCI HAR Dataset/train/X_train.txt", header=FALSE)
 X<-rbind(X_test,X_train)
