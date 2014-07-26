@@ -1,81 +1,58 @@
-
-##function to read table from file x, if exists return data frame
-read.table.exists <- function (x,header = FALSE) {
-  if (!file.exists(x)) {
-    stop(paste("file", file.path(mainDir,x),"does not exists"))
-  } else {
-    read.table(x,header)
-  }
-}
-
-##make data frame from datasets naming the columns
-##columns 1:5
-##1 subject
-##2 activity
-##3 activity-name 
-##4 data set
-make.df <- function (dataset,colnames) {
-  subject <- paste(file.path(subDir,dataset),"/subject_",dataset,".txt",sep="")
-  y <- paste(file.path(subDir,dataset),"/y_",dataset,".txt",sep="")
-  X <- paste(file.path(subDir,dataset),"/X_",dataset,".txt",sep="")
-  df <-cbind(read.table.exists(subject),read.table.exists(y),read.table.exists(y),c(dataset),read.table.exists(X))
-  names(df) <- colnames
-  df$"activity-name"<- activities.df[df$"activity-name",]$name
-  df
-}
-
-##variables names
-mainDir <- getwd()
-subDir <- "UCI HAR Dataset"
-data.local.file<-"UCI HAR Dataset.zip"
-tidy.dataset.file <- "tidy-dataset.txt"
+#variables names
+subdir <- "UCI HAR Dataset"
+url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+localzip <-"data.zip"
 tidy.datasetavg.file <- "tidy-dataset-avg.txt"
 
-##features data frame with named columns
-features.df <- read.table.exists(file.path(subDir,"features.txt"))
-names(features.df)  <- c("id","name")
-
-##activities.df data frame with named columns
-activities.df <- read.table.exists(file.path(subDir,"activity_labels.txt"))
-names(activities.df)<-c("id","name")
-
-tidy.df.names <- c("subject","activity","activity-name","dataset",as.vector(features.df$name))
-
-##test data frame
-test.df <- make.df("test",tidy.df.names)
-
-##train data frame
-train.df <- make.df("train",tidy.df.names)
-
-##combine test and train 
-tidy.df <- rbind(test.df,train.df)
-
-##drop columns not *mean* or *std*
-drop <- c()
-keep <- c()
-for (i in 5:ncol(tidy.df)) {
-  colname<-names(tidy.df[i])
-  if ( ( grepl("-mean",colname) |  grepl("-std",colname) ) ) {
-    keep <-c(keep,names(tidy.df[i]))  
-  }
-  else {
-    drop <-c(drop,names(tidy.df[i]))  
-    
-  }
+#download and unzip file if necessary
+if ( !file.exists(subdir) )  {
+    download.file(url,destfile=localzip)
+    unzip(localzip)
 }
 
-tidy.df <- tidy.df[,!(names(tidy.df) %in% drop)]
+#features data frame with named columns
+features.df <- read.table("UCI HAR Dataset/features.txt", header=FALSE)
+names(features.df) <- c("id","name")
 
-write.csv(tidy.df, tidy.dataset.file)
+#activities data frame with named columns
+activities.df <- read.table("UCI HAR Dataset/activity_labels.txt", header=FALSE)
+names(activities.df)<-c("id","name")
 
-##means for measures (from col 5 to total cols), group by: subject,activity,activity-name
-tidy.avgs.df <- aggregate(tidy.df[, 5:dim(tidy.df)[2]],
+#one subject data frame from the two data sets and columns
+subject_test<-read.table("UCI HAR Dataset/test/subject_test.txt", header=FALSE)
+subject_train<-read.table("UCI HAR Dataset/train/subject_train.txt", header=FALSE)
+subject<-rbind(subject_test,subject_train)
+names(subject)<-c("subject")
+
+#one y (activities) data frame from the two data sets and columns
+y_test<-read.table("UCI HAR Dataset/test/y_test.txt", header=FALSE)
+y_train<-read.table("UCI HAR Dataset/train/y_train.txt", header=FALSE)
+y<-rbind(y_test,y_train)
+##3.Uses descriptive activity names to name the activities in the data set
+names(y)<-c("activity")
+y$activity<-activities.df[y$activity,]$name
+
+##one X (measurements) data frame from the two data sets and columns
+X_test<-read.table("UCI HAR Dataset/test/X_test.txt", header=FALSE)
+X_train<-read.table("UCI HAR Dataset/train/X_train.txt", header=FALSE)
+X<-rbind(X_test,X_train)
+
+##4. Appropriately labels the data set with descriptive variable names. 
+names(X)<-features.df$name
+
+##2. Extracts only the measurements on the mean and standard deviation for each measurement. 
+X<-X[grepl("-mean|-std",names(X))] 
+
+##1. Merges the training and the test sets to create one data set.
+tidy.df<-cbind(subject,y,X)
+
+
+
+##means for measures (measures go from 3th to last column), group by: subject,activity
+#5. Creates a second, independent tidy data set with the average of each variable for each activity and each subject. 
+tidy.avgs.df <- aggregate(tidy.df[, 3:dim(tidy.df)[2]],
                           list(subject=tidy.df$subject,
-                               activity=tidy.df$activity,
-                               "activity-name"=tidy.df$"activity-name"),
+                               activity=tidy.df$activity),
                           mean)
 
 write.csv(tidy.avgs.df, tidy.datasetavg.file)
-
-##return tidy data set
-tidy.df
